@@ -61,15 +61,13 @@ export class BadgeFactory {
         const ring2 = ring1.clone();
         ring2.rotation.x = Math.PI / 1.8;
         ring2.scale.set(0.8, 0.8, 0.8);
-        const particles = createParticles('votes');
         
         const externalGlow = new THREE.Sprite(createGlowSpriteMaterial(0xffd700));
         externalGlow.scale.set(7, 7, 1);
         
-        group.add(externalGlow, horn1, horn2, particles, ring1, ring2);
+        group.add(externalGlow, horn1, horn2, ring1, ring2);
         group.update = (time) => {
             group.rotation.y = time * 0.2;
-            particles.rotation.y = -time * 0.3;
             ring1.rotation.z = -time * 0.4;
             ring2.rotation.z = time * 0.5;
         };
@@ -92,10 +90,8 @@ export class BadgeFactory {
         const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
         const orbitRing = new THREE.Mesh(ringGeo, ringMat);
         orbitRing.rotation.x = Math.PI / 2;
-
         const externalGlow = new THREE.Sprite(createGlowSpriteMaterial(0xaaaaff));
         externalGlow.scale.set(9, 9, 1);
-
         group.add(externalGlow, quillGroup, inkBlot, orbitRing);
         group.rotation.z = Math.PI / 8;
         group.update = (time) => {
@@ -115,8 +111,10 @@ export class BadgeFactory {
         const heartGeom = new THREE.ExtrudeGeometry(heartShape, { depth: 1.2, bevelEnabled: true, bevelSegments: 4, steps: 2, bevelSize: 0.6, bevelThickness: 0.6 }).center().scale(0.35, 0.35, 0.35);
         const heartMat = new THREE.ShaderMaterial({ vertexShader: heartVertexShader, fragmentShader: heartFragmentShader, uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(0xff0055) }, uLightPosition: { value: new THREE.Vector3(0, 0, 8) } } });
         const heart = new THREE.Mesh(heartGeom, heartMat);
+
+        heart.rotation.z = Math.PI;
+
         const particles = createParticles('likes');
-        
         const externalGlow = new THREE.Sprite(createGlowSpriteMaterial(0xff0055));
         externalGlow.scale.set(9, 9, 1);
 
@@ -150,19 +148,20 @@ export class BadgeFactory {
         const curve = new THREE.CatmullRomCurve3(points, true);
         const weaverGeom = new THREE.TubeGeometry(curve, 256, 0.35, 20, true);
         const weaver = new THREE.Mesh(weaverGeom, weaverMat);
-        const orbitCurve = new THREE.CatmullRomCurve3(points.map(p => p.clone().multiplyScalar(1.2)), true);
-        const orbitGeom = new THREE.TubeGeometry(orbitCurve, 256, 0.05, 8, true);
-        const orbitMat = new THREE.MeshBasicMaterial({ color: 0x9999ff });
-        const orbitWeave = new THREE.Mesh(orbitGeom, orbitMat);
+        
+        const coreGeo = new THREE.IcosahedronGeometry(0.5, 1);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0x9999ff, transparent: true, opacity: 0.8 });
+        const core = new THREE.Mesh(coreGeo, coreMat);
 
         const externalGlow = new THREE.Sprite(createGlowSpriteMaterial(0x6c5ce7));
         externalGlow.scale.set(7, 7, 1);
 
-        group.add(externalGlow, weaver, orbitWeave);
+        group.add(externalGlow, weaver, core);
         group.update = (time) => {
             group.rotation.x = time * 0.1;
             group.rotation.y = time * 0.15;
-            orbitWeave.rotation.y = -time * 0.3;
+            const scale = 1 + Math.sin(time * 4) * 0.2;
+            core.scale.set(scale, scale, scale);
         };
         return group;
     }
