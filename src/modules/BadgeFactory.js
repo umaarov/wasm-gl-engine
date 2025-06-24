@@ -12,7 +12,7 @@ export class BadgeFactory {
     static create(badgeName) {
         switch (badgeName) {
             case 'votes': return this.createVotesBadge();
-            case 'posters':return this.createPostersBadge();
+            case 'posters': return this.createPostersBadge();
             case 'likes': return this.createLikesBadge();
             case 'commentators': return this.createCommentatorsBadge();
             default: return null;
@@ -47,7 +47,7 @@ export class BadgeFactory {
         };
         return group;
     }
-    
+
     static createLikesBadge() {
         const group = new THREE.Group();
         const heartShape = new THREE.Shape();
@@ -63,7 +63,7 @@ export class BadgeFactory {
                 uLightPosition: { value: new THREE.Vector3(0, 0, 8) }
             }
         });
-        
+
         const heart = new THREE.Mesh(heartGeom, heartMat);
         group.add(heart);
 
@@ -78,30 +78,32 @@ export class BadgeFactory {
     }
 
     static createCommentatorsBadge() {
-        if (!wasmModule) {
-            console.error("WASM module not initialized for Commentators Badge.");
-            return new THREE.Group();
-        }
-    
-        const group = new THREE.Group();
-        const weaverMat = new THREE.MeshPhysicalMaterial({ 
-            color: 0x666688, 
-            metalness: 0.9, 
-            roughness: 0.3, 
-            emissive: 0x4444ff, 
-            emissiveIntensity: 0.2 
-        });
+    if (!wasmModule) {
+        console.error("WASM module not initialized for Commentators Badge.");
+        return new THREE.Group();
+    }
 
-        const createWeaver = wasmModule.cwrap('createComplexWeaverGeometry', 'number', ['number', 'number', 'number', 'number', 'number', 'number']);
-        const sizePtr = wasmModule._malloc(4);
-        const verticesPtr = createWeaver(10, 1.5, 0.1, 5, 7, sizePtr);
-        const size = wasmModule.getValue(sizePtr, 'i32');
-        
-        const weaverVerticesRaw = new Float32Array(wasmModule.HEAPF32.buffer, verticesPtr, size);
+    console.dir(wasmModule, { depth: null });
+
+    const group = new THREE.Group();
+    const weaverMat = new THREE.MeshPhysicalMaterial({
+        color: 0x666688,
+        metalness: 0.9,
+        roughness: 0.3,
+        emissive: 0x4444ff,
+        emissiveIntensity: 0.2
+    });
+
+    const createWeaver = wasmModule.cwrap('createComplexWeaverGeometry', 'number', ['number', 'number', 'number', 'number', 'number', 'number']);
+    const sizePtr = wasmModule._malloc(4);
+    const verticesPtr = createWeaver(10, 1.5, 0.1, 5, 7, sizePtr);
+    const size = wasmModule.getValue(sizePtr, 'i32');
+
+    const weaverVerticesRaw = new Float32Array(wasmModule.memory.buffer, verticesPtr, size);
 
         const points = [];
         for (let i = 0; i < weaverVerticesRaw.length; i += 3) {
-            points.push(new THREE.Vector3(weaverVerticesRaw[i], weaverVerticesRaw[i+1], weaverVerticesRaw[i+2]));
+            points.push(new THREE.Vector3(weaverVerticesRaw[i], weaverVerticesRaw[i + 1], weaverVerticesRaw[i + 2]));
         }
 
         wasmModule._free(verticesPtr);
@@ -112,7 +114,7 @@ export class BadgeFactory {
 
         const weaver = new THREE.Mesh(weaverGeom, weaverMat);
         group.add(weaver);
-        
+
         group.update = (time) => {
             group.rotation.x = time * 0.1;
             group.rotation.y = time * 0.15;
