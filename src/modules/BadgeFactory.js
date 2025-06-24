@@ -1,6 +1,6 @@
 import * as THREE from "three";
-// import heartVertexShader from '../shaders/likes_badge/vertex.glsl?raw';
-// import heartFragmentShader from '../shaders/likes_badge/fragment.glsl?raw';
+import heartVertexShader from '../shaders/likes_badge/vertex.glsl?raw';
+import heartFragmentShader from '../shaders/likes_badge/fragment.glsl?raw';
 
 let wasmModule;
 
@@ -12,7 +12,7 @@ export class BadgeFactory {
     static create(badgeName) {
         switch (badgeName) {
             case 'votes': return this.createVotesBadge();
-            case 'posters': return this.createPostersBadge();
+            case 'posters':return this.createPostersBadge();
             case 'likes': return this.createLikesBadge();
             case 'commentators': return this.createCommentatorsBadge();
             default: return null;
@@ -48,55 +48,75 @@ export class BadgeFactory {
         return group;
     }
     
-     static createLikesBadge() {
-        console.log("[BadgeFactory] Testing Likes Badge with a basic material...");
+    static createLikesBadge() {
         const group = new THREE.Group();
         const heartShape = new THREE.Shape();
         heartShape.moveTo(2.5, 2.5); heartShape.bezierCurveTo(2.5, 2.5, 2, 0, 0, 0); heartShape.bezierCurveTo(-3, 0, -3, 3.5, -3, 3.5); heartShape.bezierCurveTo(-3, 5.5, -1, 7.7, 2.5, 9.5); heartShape.bezierCurveTo(6, 7.7, 8, 5.5, 8, 3.5); heartShape.bezierCurveTo(8, 3.5, 8, 0, 5, 0); heartShape.bezierCurveTo(3.5, 0, 2.5, 2.5, 2.5, 2.5);
         const heartGeom = new THREE.ExtrudeGeometry(heartShape, { depth: 1, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 0.5, bevelThickness: 0.5 }).center().scale(0.3, 0.3, 0.3);
 
-        const heartMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+        const heartMat = new THREE.ShaderMaterial({
+            vertexShader: heartVertexShader,
+            fragmentShader: heartFragmentShader,
+            uniforms: {
+                uTime: { value: 0 },
+                uColor: { value: new THREE.Color(0xff0055) },
+                uLightPosition: { value: new THREE.Vector3(0, 0, 8) }
+            }
+        });
+        
         const heart = new THREE.Mesh(heartGeom, heartMat);
         group.add(heart);
 
-        group.update = (time) => {
+        group.update = (time, lightPosition) => {
+            heartMat.uniforms.uTime.value = time;
+            if (lightPosition) {
+                heartMat.uniforms.uLightPosition.value.copy(lightPosition);
+            }
             group.rotation.y = -time * 0.15;
         };
         return group;
     }
 
-    // static createCommentatorsBadge() {
-    //     const group = new THREE.Group();
-    //     const weaverMat = new THREE.MeshPhysicalMaterial({ color: 0x666688, metalness: 0.9, roughness: 0.3, emissive: 0x4444ff, emissiveIntensity: 0.2 });
-
-    //     const createWeaver = wasmModule.cwrap('createComplexWeaverGeometry', 'number', ['number', 'number', 'number', 'number', 'number', 'number']);
-    //     const sizePtr = wasmModule._malloc(4);
-    //     const verticesPtr = createWeaver(10, 1.5, 0.1, 5, 7, sizePtr);
-    //     const size = wasmModule.getValue(sizePtr, 'i32');
-        
-    //     const weaverVertices = new Float32Array(wasmModule.HEAPF32.buffer, verticesPtr, size);
-
-    //     wasmModule._free(verticesPtr);
-    //     wasmModule._free(sizePtr);
-
-    //     const weaverGeom = new THREE.BufferGeometry();
-    //     weaverGeom.setAttribute('position', new THREE.BufferAttribute(weaverVertices, 3));
-    //     weaverGeom.computeVertexNormals();
-
-    //     const weaver = new THREE.Mesh(weaverGeom, weaverMat);
-    //     group.add(weaver);
-        
-    //     group.update = (time) => {
-    //         group.rotation.x = time * 0.1;
-    //         group.rotation.y = time * 0.15;
-    //     };
-    //     return group;
-    // }
-
     static createCommentatorsBadge() {
-        // ==========================================================
-        console.log("WASM is currently disabled for testing.");
-        return new THREE.Group();
-        // ==========================================================
+        if (!wasmModule) {
+            console.error("WASM module not initialized for Commentators Badge.");
+            return new THREE.Group();
+        }
+    
+        const group = new THREE.Group();
+        const weaverMat = new THREE.MeshPhysicalMaterial({ 
+            color: 0x666688, 
+            metalness: 0.9, 
+            roughness: 0.3, 
+            emissive: 0x4444ff, 
+            emissiveIntensity: 0.2 
+        });
+
+        const createWeaver = wasmModule.cwrap('createComplexWeaverGeometry', 'number', ['number', 'number', 'number', 'number', 'number', 'number']);
+        const sizePtr = wasmModule._malloc(4);
+        const verticesPtr = createWeaver(10, 1.5, 0.1, 5, 7, sizePtr);
+        const size = wasmModule.getValue(sizePtr, 'i32');
+        
+        const weaverVerticesRaw = new Float32Array(wasmModule.HEAPF32.buffer, verticesPtr, size);
+
+        const points = [];
+        for (let i = 0; i < weaverVerticesRaw.length; i += 3) {
+            points.push(new THREE.Vector3(weaverVerticesRaw[i], weaverVerticesRaw[i+1], weaverVerticesRaw[i+2]));
+        }
+
+        wasmModule._free(verticesPtr);
+        wasmModule._free(sizePtr);
+
+        const curve = new THREE.CatmullRomCurve3(points, true);
+        const weaverGeom = new THREE.TubeGeometry(curve, 128, 0.3, 16, true);
+
+        const weaver = new THREE.Mesh(weaverGeom, weaverMat);
+        group.add(weaver);
+        
+        group.update = (time) => {
+            group.rotation.x = time * 0.1;
+            group.rotation.y = time * 0.15;
+        };
+        return group;
     }
 }

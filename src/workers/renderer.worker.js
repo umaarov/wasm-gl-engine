@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import { BadgeFactory } from '../modules/BadgeFactory.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
 
 let sceneManager;
 let currentBadge;
@@ -35,18 +40,19 @@ self.onmessage = async (event) => {
 };
 
 class SceneManager {
-    constructor(canvas) {
+    constructor(canvas, width, height) {
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(50, canvas.width / canvas.height, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
         this.camera.position.z = 12;
 
         this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
         this.renderer.setPixelRatio(self.devicePixelRatio);
-        this.renderer.setSize(canvas.width, canvas.height, false);
+        this.renderer.setSize(width, height, false);
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
 
         this._setupLighting();
+        this._setupPostProcessing(width, height);
     }
 
     _setupLighting() {
@@ -57,10 +63,22 @@ class SceneManager {
         this.scene.add(this.pointLight);
     }
 
+    _setupPostProcessing(width, height) {
+        const renderPass = new RenderPass(this.scene, this.camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 1.2, 0.5, 0);
+        const outputPass = new OutputPass();
+
+        this.composer = new EffectComposer(this.renderer);
+        this.composer.addPass(renderPass);
+        this.composer.addPass(bloomPass);
+        this.composer.addPass(outputPass);
+    }
+
     onWindowResize({ width, height }) {
         this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(width, height, false);
+        this.composer.setSize(width, height);
     }
 
     updateMouseLight({ mouseX, mouseY }) {
@@ -74,12 +92,14 @@ class SceneManager {
 
     add(object) { this.scene.add(object); }
     remove(object) { this.scene.remove(object); }
-    render() { this.renderer.render(this.scene, this.camera); }
+    render() { this.composer.render(); }
 }
 
 
 function init(canvas, initialBadge) {
-    sceneManager = new SceneManager(canvas);
+    const width = canvas.width;
+    const height = canvas.height;
+    sceneManager = new SceneManager(canvas, width, height);
     switchBadge(initialBadge);
 }
 
@@ -112,7 +132,7 @@ function switchBadge(badgeName) {
 function animate() {
     const time = Date.now() * 0.001;
     if (currentBadge && typeof currentBadge.update === 'function') {
-        currentBadge.update(time);
+        currentBadge.update(time, sceneManager.pointLight.position);
     }
     sceneManager.render();
     requestAnimationFrame(animate);
