@@ -66,9 +66,18 @@ class SceneManager {
     }
 
     _setupLighting() {
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
         this.scene.add(ambientLight);
-        this.pointLight = new THREE.PointLight(0xffffff, 25, 100, 2);
+
+        const keyLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        keyLight.position.set(-5, 5, 5);
+        this.scene.add(keyLight);
+
+        const fillLight = new THREE.PointLight(0x8c9eff, 10, 100, 2);
+        fillLight.position.set(5, 0, 5);
+        this.scene.add(fillLight);
+
+        this.pointLight = new THREE.PointLight(0xffffff, 15, 100, 2);
         this.pointLight.position.set(0, 0, 8);
         this.scene.add(this.pointLight);
     }
