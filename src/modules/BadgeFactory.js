@@ -3,10 +3,33 @@ import heartVertexShader from '../shaders/likes_badge/vertex.glsl?raw';
 import heartFragmentShader from '../shaders/likes_badge/fragment.glsl?raw';
 import inkblotVertexShader from '../shaders/ink_blot/vertex.glsl?raw';
 import inkblotFragmentShader from '../shaders/ink_blot/fragment.glsl?raw';
-
 import { createParticles } from './particleEffects.js';
 
 let wasmModule;
+
+function createGlowSpriteMaterial(color) {
+    const canvas = new OffscreenCanvas(128, 128);
+    const context = canvas.getContext('2d');
+    const gradient = context.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, canvas.width / 2
+    );
+    gradient.addColorStop(0.2, 'rgba(255, 255, 255, 1.0)');
+    gradient.addColorStop(1.0, 'rgba(255, 255, 255, 0)');
+
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return new THREE.SpriteMaterial({
+        map: texture,
+        color: color,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthTest: false,
+        opacity: 0.1
+    });
+}
 
 export class BadgeFactory {
     static setWasm(module) {
@@ -39,7 +62,11 @@ export class BadgeFactory {
         ring2.rotation.x = Math.PI / 1.8;
         ring2.scale.set(0.8, 0.8, 0.8);
         const particles = createParticles('votes');
-        group.add(horn1, horn2, particles, ring1, ring2);
+        
+        const externalGlow = new THREE.Sprite(createGlowSpriteMaterial(0xffd700));
+        externalGlow.scale.set(7, 7, 1);
+        
+        group.add(externalGlow, horn1, horn2, particles, ring1, ring2);
         group.update = (time) => {
             group.rotation.y = time * 0.2;
             particles.rotation.y = -time * 0.3;
@@ -55,31 +82,28 @@ export class BadgeFactory {
         const quillBody = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.2, 4.5, 32), quillMaterial);
         const quillTip = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.5, 32), quillMaterial);
         quillTip.position.y = -2.5;
-
         const quillGroup = new THREE.Group();
         quillGroup.add(quillBody, quillTip);
-
-        const inkBlotMat = new THREE.ShaderMaterial({
-            vertexShader: inkblotVertexShader,
-            fragmentShader: inkblotFragmentShader,
-            uniforms: {
-                uTime: { value: 0 }
-            },
-            transparent: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-        });
+        const inkBlotMat = new THREE.ShaderMaterial({ vertexShader: inkblotVertexShader, fragmentShader: inkblotFragmentShader, uniforms: { uTime: { value: 0 } }, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, });
         const inkBlotGeo = new THREE.PlaneGeometry(8, 8);
         const inkBlot = new THREE.Mesh(inkBlotGeo, inkBlotMat);
         inkBlot.position.z = -2;
+        const ringGeo = new THREE.TorusGeometry(1, 0.03, 16, 100);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+        const orbitRing = new THREE.Mesh(ringGeo, ringMat);
+        orbitRing.rotation.x = Math.PI / 2;
 
-        group.add(quillGroup, inkBlot);
+        const externalGlow = new THREE.Sprite(createGlowSpriteMaterial(0xaaaaff));
+        externalGlow.scale.set(9, 9, 1);
 
+        group.add(externalGlow, quillGroup, inkBlot, orbitRing);
         group.rotation.z = Math.PI / 8;
         group.update = (time) => {
             group.rotation.y = time * 0.1;
             inkBlotMat.uniforms.uTime.value = time;
             quillGroup.position.y = Math.sin(time * 3) * 0.1;
+            orbitRing.position.y = Math.cos(time * 3) * 0.1;
+            orbitRing.rotation.z = time * 0.2;
         };
         return group;
     }
@@ -89,14 +113,14 @@ export class BadgeFactory {
         const heartShape = new THREE.Shape();
         heartShape.moveTo(2.5, 2.5); heartShape.bezierCurveTo(2.5, 2.5, 2, 0, 0, 0); heartShape.bezierCurveTo(-3, 0, -3, 3.5, -3, 3.5); heartShape.bezierCurveTo(-3, 5.5, -1, 7.7, 2.5, 9.5); heartShape.bezierCurveTo(6, 7.7, 8, 5.5, 8, 3.5); heartShape.bezierCurveTo(8, 3.5, 8, 0, 5, 0); heartShape.bezierCurveTo(3.5, 0, 2.5, 2.5, 2.5, 2.5);
         const heartGeom = new THREE.ExtrudeGeometry(heartShape, { depth: 1.2, bevelEnabled: true, bevelSegments: 4, steps: 2, bevelSize: 0.6, bevelThickness: 0.6 }).center().scale(0.35, 0.35, 0.35);
-        const heartMat = new THREE.ShaderMaterial({
-            vertexShader: heartVertexShader,
-            fragmentShader: heartFragmentShader,
-            uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(0xff0055) }, uLightPosition: { value: new THREE.Vector3(0, 0, 8) } }
-        });
+        const heartMat = new THREE.ShaderMaterial({ vertexShader: heartVertexShader, fragmentShader: heartFragmentShader, uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(0xff0055) }, uLightPosition: { value: new THREE.Vector3(0, 0, 8) } } });
         const heart = new THREE.Mesh(heartGeom, heartMat);
         const particles = createParticles('likes');
-        group.add(heart, particles);
+        
+        const externalGlow = new THREE.Sprite(createGlowSpriteMaterial(0xff0055));
+        externalGlow.scale.set(9, 9, 1);
+
+        group.add(externalGlow, heart, particles);
         group.update = (time, lightPosition) => {
             heartMat.uniforms.uTime.value = time;
             if (lightPosition) { heartMat.uniforms.uLightPosition.value.copy(lightPosition); }
@@ -130,7 +154,11 @@ export class BadgeFactory {
         const orbitGeom = new THREE.TubeGeometry(orbitCurve, 256, 0.05, 8, true);
         const orbitMat = new THREE.MeshBasicMaterial({ color: 0x9999ff });
         const orbitWeave = new THREE.Mesh(orbitGeom, orbitMat);
-        group.add(weaver, orbitWeave);
+
+        const externalGlow = new THREE.Sprite(createGlowSpriteMaterial(0x6c5ce7));
+        externalGlow.scale.set(7, 7, 1);
+
+        group.add(externalGlow, weaver, orbitWeave);
         group.update = (time) => {
             group.rotation.x = time * 0.1;
             group.rotation.y = time * 0.15;
