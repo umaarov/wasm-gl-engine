@@ -4,7 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 
 let sceneManager;
 let currentBadge;
@@ -20,7 +20,7 @@ self.onmessage = async (event) => {
                 wasmModule = await wasmFactory.default();
                 BadgeFactory.setWasm(wasmModule);
             }
-            init(payload.canvas, payload.badgeName);
+            init(payload.canvas, payload.badgeName, payload.width, payload.height);
             animate();
             break;
         case 'switchBadge':
@@ -63,14 +63,17 @@ class SceneManager {
         this.scene.add(this.pointLight);
     }
 
-    _setupPostProcessing(width, height) {
+     _setupPostProcessing(width, height) {
         const renderPass = new RenderPass(this.scene, this.camera);
         const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 1.2, 0.5, 0);
         const outputPass = new OutputPass();
 
+        const smaaPass = new SMAAPass(width * self.devicePixelRatio, height * self.devicePixelRatio);
+
         this.composer = new EffectComposer(this.renderer);
         this.composer.addPass(renderPass);
         this.composer.addPass(bloomPass);
+        this.composer.addPass(smaaPass);
         this.composer.addPass(outputPass);
     }
 
@@ -96,9 +99,7 @@ class SceneManager {
 }
 
 
-function init(canvas, initialBadge) {
-    const width = canvas.width;
-    const height = canvas.height;
+function init(canvas, initialBadge, width, height) {
     sceneManager = new SceneManager(canvas, width, height);
     switchBadge(initialBadge);
 }

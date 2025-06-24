@@ -37,8 +37,8 @@ export class BadgeFactory {
     static createPostersBadge() {
         const group = new THREE.Group();
         const quillMaterial = new THREE.MeshPhysicalMaterial({ color: 0xcccccc, metalness: 1.0, roughness: 0.2, iridescence: 1, iridescenceIOR: 1.8 });
-        const quillBody = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.2, 4, 16), quillMaterial);
-        const quillTip = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.4, 16), quillMaterial);
+        const quillBody = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.2, 4, 32), quillMaterial);
+        const quillTip = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.4, 32), quillMaterial);
         quillTip.position.y = -2.2;
         group.add(quillBody, quillTip);
         group.rotation.z = Math.PI / 8;

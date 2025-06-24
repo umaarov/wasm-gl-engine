@@ -20,6 +20,8 @@ export class App {
             payload: {
                 canvas: offscreen,
                 badgeName: 'votes',
+                width: window.innerWidth,
+                height: window.innerHeight,
                 wasm: {
                     url: '/src/assets/wasm/geometry_optimizer.js'
                 }
