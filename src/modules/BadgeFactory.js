@@ -78,28 +78,28 @@ export class BadgeFactory {
     }
 
     static createCommentatorsBadge() {
-    if (!wasmModule) {
-        console.error("WASM module not initialized for Commentators Badge.");
-        return new THREE.Group();
-    }
+        if (!wasmModule) {
+            console.error("WASM module not initialized for Commentators Badge.");
+            return new THREE.Group();
+        }
 
-    console.dir(wasmModule, { depth: null });
+        console.dir(wasmModule, { depth: null });
 
-    const group = new THREE.Group();
-    const weaverMat = new THREE.MeshPhysicalMaterial({
-        color: 0x666688,
-        metalness: 0.9,
-        roughness: 0.3,
-        emissive: 0x4444ff,
-        emissiveIntensity: 0.2
-    });
+        const group = new THREE.Group();
+        const weaverMat = new THREE.MeshPhysicalMaterial({
+            color: 0x666688,
+            metalness: 0.9,
+            roughness: 0.3,
+            emissive: 0x4444ff,
+            emissiveIntensity: 0.2
+        });
 
-    const createWeaver = wasmModule.cwrap('createComplexWeaverGeometry', 'number', ['number', 'number', 'number', 'number', 'number', 'number']);
-    const sizePtr = wasmModule._malloc(4);
-    const verticesPtr = createWeaver(10, 1.5, 0.1, 5, 7, sizePtr);
-    const size = wasmModule.getValue(sizePtr, 'i32');
+        const createWeaver = wasmModule.cwrap('createComplexWeaverGeometry', 'number', ['number', 'number', 'number', 'number', 'number', 'number']);
+        const sizePtr = wasmModule._malloc(4);
+        const verticesPtr = createWeaver(10, 1.5, 0.1, 5, 7, sizePtr);
+        const size = wasmModule.getValue(sizePtr, 'i32');
 
-    const weaverVerticesRaw = new Float32Array(wasmModule.memory.buffer, verticesPtr, size);
+        const weaverVerticesRaw = new Float32Array(wasmModule.wasmMemory.buffer, verticesPtr, size);
 
         const points = [];
         for (let i = 0; i < weaverVerticesRaw.length; i += 3) {

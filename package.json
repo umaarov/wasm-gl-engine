@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:wasm": "emcc src/cpp/geometry_optimizer.cpp -o src/assets/wasm/geometry_optimizer.js -O3 -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s SINGLE_FILE=1 -s ENVIRONMENT='worker' -s EXPORTED_FUNCTIONS=\"['_createComplexWeaverGeometry', '_malloc', '_free']\" -s EXPORTED_RUNTIME_METHODS=\"['cwrap', 'getValue']\" -s ALLOW_MEMORY_GROWTH=1"
+    "build:wasm": "emcc src/cpp/geometry_optimizer.cpp -o src/assets/wasm/geometry_optimizer.js -O3 -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s SINGLE_FILE=1 -s ENVIRONMENT='worker' -s EXPORTED_FUNCTIONS=\"['_createComplexWeaverGeometry', '_malloc', '_free']\" -s EXPORTED_RUNTIME_METHODS=\"['cwrap', 'getValue', 'wasmMemory']\" -s ALLOW_MEMORY_GROWTH=1"
   },
   "dependencies": {
     "three": "^0.165.0"
