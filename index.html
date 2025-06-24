@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional 3D Badge Engine</title>
+    <link rel="stylesheet" href="./public/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="info">
+        <h1 id="badge-title">Loading Engine...</h1>
+        <p id="badge-description">Please wait while the WebAssembly modules and rendering worker initialize.</p>
+        <div class="badge-switcher">
+            <button class="badge-button active" data-badge="votes">Post Votes</button>
+            <button class="badge-button" data-badge="posters">Top Posters</button>
+            <button class="badge-button" data-badge="likes">Comment Likes</button>
+            <button class="badge-button" data-badge="commentators">Commentators</button>
+        </div>
+    </div>
+    <canvas id="c"></canvas>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
