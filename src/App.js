@@ -3,14 +3,25 @@ import { UIManager } from './modules/UIManager.js';
 export class App {
     constructor() {
         this.canvas = document.querySelector('#c');
+        this.loadingOverlay = document.getElementById('loading-overlay');
+        this.isWorkerReady = false;
+
         this.worker = new Worker(new URL('./workers/renderer.worker.js', import.meta.url), {
             type: 'module'
-
         });
 
         this.worker.onerror = (error) => {
-            console.error("❌ An error occurred in the renderer worker:", error.message);
-            console.error("Full error object:", error);
+            console.error("❌ An error occurred in the renderer worker:", error.message, error);
+        };
+
+        this.worker.onmessage = (event) => {
+            if (event.data.type === 'ready') {
+                this.isWorkerReady = true;
+                this.loadingOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    this.loadingOverlay.style.display = 'none';
+                }, 500);
+            }
         };
 
         const offscreen = this.canvas.transferControlToOffscreen();
@@ -22,6 +33,7 @@ export class App {
                 badgeName: 'votes',
                 width: window.innerWidth,
                 height: window.innerHeight,
+                pixelRatio: Math.min(window.devicePixelRatio, 2),
                 wasm: {
                     url: '/src/assets/wasm/geometry_optimizer.js'
                 }
@@ -32,7 +44,7 @@ export class App {
 
         this.fetchBadgeDetails().then(badgeDetails => {
             this.uiManager = new UIManager(badgeDetails, this.switchBadge.bind(this));
-            // this.uiManager.handleSwitch('votes');
+            this.uiManager.handleSwitch('votes');
         });
     }
 
@@ -50,11 +62,13 @@ export class App {
         document.addEventListener('mousemove', this.onMouseMove.bind(this), false);
     }
 
+    sendMessageToWorker(type, payload) {
+        if (!this.isWorkerReady) return;
+        this.worker.postMessage({ type, payload });
+    }
+
     switchBadge(badgeName) {
-        this.worker.postMessage({
-            type: 'switchBadge',
-            payload: { badgeName }
-        });
+        this.sendMessageToWorker('switchBadge', { badgeName });
     }
 
     onResize() {
@@ -68,12 +82,9 @@ export class App {
     }
 
     onMouseMove(event) {
-        this.worker.postMessage({
-            type: 'mouseMove',
-            payload: {
-                mouseX: (event.clientX / window.innerWidth) * 2 - 1,
-                mouseY: -(event.clientY / window.innerHeight) * 2 + 1
-            }
+        this.sendMessageToWorker('mouseMove', {
+            mouseX: (event.clientX / window.innerWidth) * 2 - 1,
+            mouseY: -(event.clientY / window.innerHeight) * 2 + 1
         });
     }
 }
